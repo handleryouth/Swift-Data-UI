@@ -9,58 +9,106 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    @Environment(\.modelContext) var modelContext
+    @State private var showingUpcomingOnly = false
+    
+    //    @Query(
+    //        filter: #Predicate<User> { user in
+    /*
+     contains is case sensitive
+     */
+    //            user in user.name.contains("R")
+    
+    /*
+     localizedStandardContains is not case sensitive
+     */
+    //            user in user.name.localizedStandardContains("R") && user.city == "London"
+    
+    
+    //            if user.name.localizedStandardContains("R") {
+    //                if user.city == "London" {
+    //                    return true
+    //                } else {
+    //                    return false
+    //                }
+    //            } else {
+    //                return false
+    //            }
+    //        },
+    //        sort: \User.name) var users: [User]
+    
+    //    @State private var path = [User]()
+    
+    
+    @State private var sortOrder = [
+        SortDescriptor(\User.name),
+        SortDescriptor(\User.joinDate)
+    ]
+    
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        //        NavigationStack(path: $path){
+        NavigationStack {
+            UserView(minimumJoinDate: showingUpcomingOnly ? .now : .distantPast, sortOrder: sortOrder)
+                .navigationTitle("Users")
+            // ** FOR PATH* *
+            //                .navigationDestination(for: User.self) {
+            //                user in EditUserView(user: user)
+                .toolbar {
+                    //                    Button("Add User", systemImage: "plus") {
+                    //                        let user = User(name: "", city: "", joinDate: .now)
+                    //                        modelContext.insert(user)
+                    // push user for editing
+                    //                    path = [user]
+                    //                    }
+                    
+                    Button("Add Samples", systemImage: "plus") {
+                        
+                        /*
+                         Try: meaning this code might fail
+                         Try?: meaning this code might fail and return nill
+                         */
+                        try? modelContext.delete(model: User.self)
+                        
+                        let first = User(name: "Ed Sheeran", city: "London", joinDate: .now.addingTimeInterval(86400 * -10))
+                        
+                        let second = User(name: "Rosa Diaz", city: "New York", joinDate: .now.addingTimeInterval(86400 * -5))
+                        
+                        let third = User(name: "Roy Kent", city: "London", joinDate: .now.addingTimeInterval(86400 * 5))
+                        
+                        let fourth = User(name: "Johnny English", city: "London", joinDate: .now.addingTimeInterval(86400 * 10))
+                        
+                        modelContext.insert(first)
+                        modelContext.insert(second)
+                        modelContext.insert(third)
+                        modelContext.insert(fourth)
                     }
-                }
-                .onDelete(perform: deleteItems)
-            }
-#if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
-            .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-#endif
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                    
+                    Button(showingUpcomingOnly ? "Show Everyone" : "Show Upcoming") {
+                        showingUpcomingOnly.toggle()
                     }
+                    
+                    Menu("Sort", systemImage: "arrow.up.arrow.down") {
+                        Picker("Sort", selection: $sortOrder) {
+                            Text("Sort by Name").tag([
+                                SortDescriptor(\User.name),
+                                SortDescriptor(\User.joinDate)
+                            ])
+                            
+                            Text("Sort by Join Date").tag([
+                                SortDescriptor(\User.joinDate),
+                                SortDescriptor(\User.name)
+                                
+                            ])
+                        }
+                    }
+                    
+                   
                 }
-            }
-        } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
         }
     }
 }
 
+
 #Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+    ContentView().modelContainer(for: User.self, inMemory: true)
 }
